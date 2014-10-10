@@ -12,8 +12,11 @@
 
   function _callback(cb, args) {
     if (cb && typeof cb === 'function') {
+      console.log("HAY CALLBACK ! --------------------------------------");
       cb.apply(null, args);
-    }
+    } else
+      console.log("NO HAY CALLBACK ! ***********************************");
+
   }
 
   /**
@@ -46,7 +49,6 @@
     this._ws = new WebSocket(Utils.getSecureURL(progressURL));
     this._onstatechange = null;
     this._onerror = null;
-    this._onreadyExternal = function foo() {};
 
     this._messageQueue;
 
@@ -65,7 +67,12 @@
         case 'progress':
           that._state = message.state;
           that._reason = message.reason;
-          _callback(that._onstatechange, [message]);
+          console.log("Estamos en progresss " + JSON.stringify(message));
+          //_callback(that._onstatechange, [message]);
+          if (message.state === 'connecting') {
+            that._state = message.state = 'error';
+            _callback(that._onerror, [message]);
+          }
           break;
         case 'error':
           that._state = message.state = 'error';
@@ -116,6 +123,7 @@
     },
 
     set onstatechange(onstatechange) {
+      console.log("FRS: ASIGNANDO CALLBACK >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
       this._onstatechange = onstatechange;
     },
 
@@ -123,14 +131,7 @@
       this._onerror = onerror;
     },
 
-    set onready(onready) {
-      this._onreadyExternal = onready;
-    },
-
     _onready: function cph_onready() {
-
-      this._onreadyExternal();
-
       if (!this._messageQueue) {
         return;
       }

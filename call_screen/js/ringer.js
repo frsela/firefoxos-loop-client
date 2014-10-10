@@ -15,6 +15,7 @@
   var Ringer = {
     play: function() {
       _init();
+      console.log("FRS ---------------- Reproduciendo ringer");
       _ringtone.play();
     },
     stop: function() {

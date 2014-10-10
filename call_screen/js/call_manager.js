@@ -75,7 +75,31 @@
 
     _perfDebug && PerfLog.log(_perfBranch, 'Call progress ' + state +
       ' received through websocket');
+console.log("FRS: call_manager::_handleCallProgress - " +
+  JSON.stringify(callProgressHelper));
+/*
+E/GeckoConsole( 5227): Content JS LOG at app://loop.services.mozilla.com/js/helpers/call_progress_helper.js:79 in onOpenWS: WebSocket opened
+E/GeckoConsole( 5227): Content JS LOG at app://loop.services.mozilla.com/js/helpers/call_progress_helper.js:85 in onOpenWS: Hello message sent
+E/GeckoConsole( 5227): Content JS LOG at app://loop.services.mozilla.com/js/helpers/call_progress_helper.js:56 in onWSMessage: onmessage {"messageType":"hello","state":"init"}
+E/GeckoConsole( 5227): Content JS LOG at app://loop.services.mozilla.com/js/helpers/call_progress_helper.js:56 in onWSMessage: onmessage {"messageType":"progress","state":"alerting"}
 
+E/GeckoConsole( 5227): Content JS LOG at app://loop.services.mozilla.com/js/helpers/call_progress_helper.js:56 in onWSMessage: onmessage {"messageType":"progress","state":"connected"}
+E/GeckoConsole( 5227): Content JS LOG at app://loop.services.mozilla.com/call_screen/js/call_manager.js:79 in _handleCallProgress: FRS: call_manager::_handleCallProgress - {"_state":"connected","_callId":"3d9a6943e45ee984609570cbaa1c5dd8","_token":"477b07765ee4fd45a77a92d59d75b789","_ws":{},"_ready":true}
+E/GeckoConsole( 5227): Content JS LOG at app://loop.services.mozilla.com/js/helpers/call_progress_helper.js:89 in onCloseWS: WebSocket closed
+
+
+---
+
+Cuando responde otro telefono, nos llega esto:
+
+
+
+
+E/GeckoConsole( 1414): Content JS LOG at app://loop.services.mozilla.com/js/helpers/call_progress_helper.js:56 in onWSMessage: onmessage {"messageType":"progress","state":"connecting"}
+E/GeckoConsole( 1414): Content JS LOG at app://loop.services.mozilla.com/js/helpers/call_progress_helper.js:56 in onWSMessage: onmessage {"messageType":"progress","state":"half-connected"}
+E/GeckoConsole( 1414): Content JS LOG at app://loop.services.mozilla.com/js/helpers/call_progress_helper.js:56 in onWSMessage: onmessage {"messageType":"progress","state":"connected"}
+
+*/
     switch(state) {
       case 'alerting':
         if (!_callee) {
@@ -122,6 +146,12 @@
    * terminating the call.
    */
   function _handleCallTermination(error) {
+console.log("FRS: call_manager::_handleCallTermination - " + error + " - " +
+  JSON.stringify(_callProgressHelper));
+  // FRS: call_manager::_handleCallTermination - undefined - 
+  //  {"_state":"clossed","_callId":"3d9a6943e45ee984609570cbaa1c5dd8",
+  //   "_token":"477b07765ee4fd45a77a92d59d75b789","_ws":{},"_ready":true}
+
     var reason;
     switch (_callProgressHelper.state) {
       case 'unknown':

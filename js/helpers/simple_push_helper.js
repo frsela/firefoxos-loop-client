@@ -5,7 +5,7 @@
 
 (function (exports) {
   // Default should be 'false'.
-  var debug = false;
+  var debug = true;
 
   // Private handler for handling the cache of channels & endpoints
   // previously registered
