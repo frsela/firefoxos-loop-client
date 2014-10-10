@@ -218,11 +218,14 @@
     },
 
     toggleSpeaker: function(isSpeakerOn) {
+      if (!isSpeakerOn) {
+        isSpeakerOn = false;
+      }
       if (!_speakerManager) {
         _speakerManager = new window.MozSpeakerManager();
       }
       _speakerManager.forcespeaker = isSpeakerOn;
-      _useSpeaker = isSpeakerOn;
+      _useSpeaker = _speakerManager.speakerforced;
     },
 
     toggleMic: function(isMicOn) {

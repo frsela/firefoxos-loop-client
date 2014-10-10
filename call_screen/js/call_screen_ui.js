@@ -121,7 +121,7 @@
       // We have 2 buttons for answering a call, depending on if we are
       // publishing video or not
       function _answer(isVideo) {
-        _isVideoEnabled = isVideo;
+        _isVideoEnabled = _isSpeakerEnabled = isVideo;
         Ringer.stop();
         if (_gUMFailed) {
           _hangUp({
@@ -325,7 +325,9 @@
           // Both sides are publishing. This event is controlled by OpenTok and
           // has no relation with the 'connected' event of the Loop Protocol
           TonePlayerHelper.stop();
-          TonePlayerHelper.playConnected();
+          TonePlayerHelper.playConnected(_isSpeakerEnabled, function() {
+            CallManager.toggleSpeaker(_isSpeakerEnabled);
+          });
           _perfDebug && PerfLog.log(_perfBranch, 'Countdown start counting');
           _perfDebug && PerfLog.milestone(_perfBranch, 'Countdown');
           Countdown.start();

@@ -77,7 +77,7 @@
       _playTone(RINGBACK_TONE, isSpeaker);
     },
 
-    playConnected: function tph_playFailed(isSpeaker) {
+    playConnected: function tph_playFailed(isSpeaker, cb) {
       _audioElement.loop = false;
       return new Promise(function(resolve, reject) {
         var timeout = window.setTimeout(resolve, TONE_TIMEOUT);
@@ -85,6 +85,9 @@
           _audioElement.removeEventListener('ended', onplaybackcompleted);
           window.clearTimeout(timeout);
           resolve();
+          if (cb && typeof cb === 'function') {
+            cb();
+          }
         });
         _playTone(CONNECTED_TONE, isSpeaker);
       });
@@ -122,6 +125,9 @@
     },
 
     playEnded: function tph_playEnded(isSpeaker) {
+      if (!_audioElement) {
+        return;
+      }
       _audioElement.loop = false;
       return new Promise(function(resolve, reject) {
         var timeout = window.setTimeout(resolve, TONE_TIMEOUT);
