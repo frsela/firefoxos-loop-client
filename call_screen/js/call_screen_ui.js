@@ -38,6 +38,7 @@
       function onSettingsClick(e) {
         _settingsButtonSpeaker.classList.toggle('setting-enabled');
         _isSpeakerEnabled = !_isSpeakerEnabled;
+        console.log("FRS Vamos a cambiar el altavoz: " + _isSpeakerEnabled);
         CallManager.toggleSpeaker(_isSpeakerEnabled);
       }
     );
@@ -121,6 +122,7 @@
       // We have 2 buttons for answering a call, depending on if we are
       // publishing video or not
       function _answer(isVideo) {
+        console.log("FRS: Respondemos llamada: " + isVideo);
         _isVideoEnabled = _isSpeakerEnabled = isVideo;
         Ringer.stop();
         if (_gUMFailed) {
@@ -132,6 +134,7 @@
         CallScreenUI.setCallStatus('connecting');
         CallManager.join(isVideo, frontCamera);
         CallScreenUI.updateLocalVideo(isVideo);
+
         if (isVideo) {
           _settingsButtonSpeaker.classList.add('setting-enabled');
           _settingsButtonVideo.classList.remove('setting-disabled');
@@ -196,7 +199,9 @@
       );
 
       // Update UI taking into account if the call is a video call or not
+      console.log("FRS Es video call? " + isVideoCall);
       _isVideoEnabled = _isSpeakerEnabled = isVideoCall && isVideoCall != 'false';
+      console.log("FRS Esta el altavoz activo: " + _isSpeakerEnabled);
       if (document.body.dataset.callStatus === 'dialing') {
         // Update the status of the UI & Tones properly
         CallScreenUI.setCallStatus('dialing');
@@ -324,8 +329,10 @@
         case 'connected':
           // Both sides are publishing. This event is controlled by OpenTok and
           // has no relation with the 'connected' event of the Loop Protocol
+          console.log("FRS Conectado !");
           TonePlayerHelper.stop();
           TonePlayerHelper.playConnected(_isSpeakerEnabled, function() {
+            console.log("FRS cambiamos altavoz !");
             CallManager.toggleSpeaker(_isSpeakerEnabled);
           });
           _perfDebug && PerfLog.log(_perfBranch, 'Countdown start counting');

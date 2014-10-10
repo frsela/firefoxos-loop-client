@@ -218,6 +218,7 @@
     },
 
     toggleSpeaker: function(isSpeakerOn) {
+      console.log("FRS SACAMOS POR SPEAKER " + isSpeakerOn);
       if (!isSpeakerOn) {
         isSpeakerOn = false;
       }

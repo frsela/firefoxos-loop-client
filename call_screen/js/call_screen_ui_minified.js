@@ -81,6 +81,9 @@
       LazyLoader.load(
         files,
         function onCallScreen() {
+          console.log("FRS: callParams: " + JSON.stringify(callParams));
+          // {"layout":"incoming","version":"1412928115415","frontCamera":"true","identities":"616913193"}
+
           CallScreenUI.init(
             callParams.layout && callParams.layout === 'incoming',
             callParams.video && callParams.video === 'true',
