@@ -200,6 +200,9 @@
           case 'media-fail':
             _onpeerended();
             break;
+          case 'answered-elsewhere':
+            // Call is cancelled by default
+            break;
           default:
             break;
         }

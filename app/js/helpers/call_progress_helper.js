@@ -59,6 +59,22 @@
       switch (message.messageType) {
         case 'hello':
           that._state = message.state;
+          if (that._state === 'alerting') {
+            // Another device got the init status ...
+            // TODO: This is a dirty hack. We shall reimplement all protocol
+            // messaging in a correct and beauty way
+            debug && console.log("hello:alerting - considering init");
+            that._state = 'init';
+            // Inyect a dummy progress message
+            setTimeout(function dummyProgress() {
+              debug && console.log(
+                "hello:alerting - inyecting progress message");
+              that._state = message.state;
+              that._reason = message.reason;
+              _callback(that._onstatechange,
+                [{"messageType":"progress","state":"alerting"}]);
+            });
+          }
           that._ready = true;
           that._onready();
           break;

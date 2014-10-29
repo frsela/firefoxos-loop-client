@@ -1,11 +1,12 @@
 Config = {
   version: '1.1',
-  debug: false,
+  debug: true,
   // Server URL. It might be (depending on the environment):
   //   Development: 'http://loop.dev.mozaws.net'
   //   Stage: 'https://loop.stage.mozaws.net'
   //   Prod: 'https://loop.services.mozilla.com'
-  server_url: 'https://loop.services.mozilla.com',
+  server_url: 'https://loop-dev.stage.mozaws.net',
+//  server_url: 'https://owd.tid.ovh:8002',
   performanceLog: {
     enabled: false,
     persistent: false
