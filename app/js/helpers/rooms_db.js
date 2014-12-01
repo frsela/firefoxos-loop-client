@@ -49,7 +49,7 @@
   const _eventsStore = 'roomEvents';
   var _dbHelper = new DatabaseHelper({
     name: 'roomsLog',
-    version: 1,
+    version: 2,
     maxNumerOfRecords: 200,
     numOfRecordsToDelete: 50
   }, {
@@ -57,25 +57,31 @@
       primary: 'roomToken',
       indexes: [{
         name: 'roomName',
-        field: 'roomName',
+        fields: 'roomName',
         params: {
           multientry: true
         }
       }, {
         name: 'creationTime',
-        field: 'creationTime',
+        fields: 'creationTime',
         params: {
           multientry: true
         }
       }, {
         name: 'localCtime',
-        field: 'localCtime',
+        fields: 'localCtime',
         params: {
           multientry: true
         }
       }, {
         name: 'user',
-        field: 'user',
+        fields: 'user',
+        params: {
+          multientry: true
+        }
+      }, {
+        name: 'userAndCreationTime',
+        fields: [ 'user', 'creationTime' ],
         params: {
           multientry: true
         }
@@ -97,13 +103,13 @@
       primary: 'id',
       indexes: [{
         name: 'roomToken',
-        field: 'roomToken',
+        fields: 'roomToken',
         params: {
           multientry: true
         }
       }, {
         name: 'date',
-        field: 'date',
+        fields: 'date',
         params: {
           multientry: true
         }
@@ -116,6 +122,76 @@
         'params'
       ]}
   });
+
+  function FilteredCursor(cursor, filter) {
+    var buffer = [];
+    var cursorPosition = -1;
+    var mainCursorFinished = false;
+    var newItemEvent = new Event('filteredcursor_new_item');
+
+    function getNextFilteredItem() {
+      if (!mainCursorFinished && cursorPosition === (buffer.length - 1)) {
+        // We should wait for more buffer items
+        return new Promise(function(resolve) {
+          window.addEventListener('filteredcursor_new_item',
+            function onNewItem() {
+              window.removeEventListener('filteredcursor_new_item',
+                onNewItem, false);
+
+              resolve(buffer[++cursorPosition]);
+            }, false);
+        });
+      }
+      return Promise.resolve(buffer[++cursorPosition]);
+    }
+
+    var self = this;
+    function nextFilteredItem() {
+      var responseEvent = {
+        target: {
+          result: null
+        }
+      };
+      if (mainCursorFinished && cursorPosition === (buffer.length - 1)) {
+        // That's all folks !
+        return self.onsuccess(responseEvent);
+      }
+      getNextFilteredItem().then(function(value) {
+        responseEvent.target.result = {
+          value: value,
+          continue: nextFilteredItem
+        };
+        self.onsuccess(responseEvent);
+      });
+    }
+
+    cursor.onsuccess = function _filteredCursorBuffering(evt) {
+      var item = evt.target.result;
+      if (!item) {
+        return mainCursorFinished = true;
+      }
+      if (item.value[filter.name] === filter.value) {
+        buffer.push(item.value);
+        if (cursorPosition < 0) {
+          // Shot first item !
+          nextFilteredItem();
+        } else {
+          window.dispatchEvent(newItemEvent);
+        }
+      } else {
+        if (buffer.length > 0) {
+          // They are sorted, so no more items to recover
+          return mainCursorFinished = true;
+        }
+      }
+      item.continue();
+    };
+    cursor.onerror = this.onerror;
+  }
+  FilteredCursor.prototype = {
+    onerror: function() {},
+    onsuccess: function() {}
+  }
 
   var RoomsDB = {
     /**
@@ -196,7 +272,18 @@
           if (error) {
             return reject(error);
           } else {
-            resolve(cursor);
+            if (field === 'userAndCreationTime') {
+              // This is an special case. We want to filter & sort
+              // since this isn't directly supported by IndexedDB, we'll
+              // create a filteredCursor in which we'll filter by logged user
+              var filteredCursor = new FilteredCursor(cursor, {
+                name: 'user',
+                value: Controller.identity
+              });
+              resolve(filteredCursor);
+            } else {
+              resolve(cursor);
+            }
           }
         }, _roomsStore, aFilter);
       });
@@ -251,9 +338,10 @@
       return new Promise(function(resolve, reject) {
         _dbHelper.updateRecord(function(error) {
           if (error) {
-            return reject(error);
+            reject(error);
+          } else {
+            resolve();
           }
-          resolve();
         }, _roomsStore, { key: token }, {
           roomName: name,
           expiresAt: expiresAt,

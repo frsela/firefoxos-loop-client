@@ -19,7 +19,7 @@
  *     primary: 'date',
  *     indexes: [{
  *       name: 'indexName',
- *       field: 'indexField',
+ *       fields: 'indexField' | [ 'indexField1', 'indexField2', ...],
  *       params: {...}
  *     }],
  *     fields: [...fieldNames...]
@@ -94,14 +94,23 @@ DatabaseHelper.prototype = {
             var schemaIndexes = schemaData.indexes;
             var schemaIndexesLength = schemaIndexes.length;
 
-            var auxStore = db.createObjectStore(schemaName, {
-              keyPath: schemaData.primary
-            });
+            var auxStore = null;
+            if (!db.objectStoreNames.contains(schemaName)) {
+              // New
+              auxStore = db.createObjectStore(schemaName, {
+                keyPath: schemaData.primary
+              });
+            } else {
+              auxStore = event.currentTarget.transaction.objectStore(schemaName);
+            }
 
+            // Indexes
             for (var _index = 0; _index < schemaIndexesLength; _index++) {
-              auxStore.createIndex(schemaIndexes[_index].name,
-                                   schemaIndexes[_index].field,
-                                   schemaIndexes[_index].params);
+              var schemaIndex = schemaIndexes[_index];
+              if (!auxStore.indexNames.contains(schemaIndex.name)) {
+                auxStore.createIndex(schemaIndex.name, schemaIndex.fields,
+                                     schemaIndex.params);
+              }
             }
           }
         });
