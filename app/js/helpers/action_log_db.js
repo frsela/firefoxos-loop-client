@@ -146,28 +146,12 @@
   }
 
   /**
-   * We store a revision number for the contacts data local cache that we need
-   * to keep synced with the Contacts API database.
-   * This method stores the revision of the Contacts API database and it will
-   * be called after refreshing the local cache because of a contact updated,
-   * a contact deletion or a cache sync.
-   */
-  function _updateCacheRevision() {
-    navigator.mozContacts.getRevision().onsuccess = function(event) {
-      var contactsRevision = event.target.result;
-      if (contactsRevision) {
-        window.asyncStorage.setItem('contactsCacheRevision',
-                                    contactsRevision);
-      }
-    };
-  }
-
-  /**
    * Updates the records from the groups object store with a given contact
    * information.
    * This function will likely be called within the handlers of the
    * 'oncontactchange' event.
    */
+// FRS: No esta funcionando, no encuentra los items y dev. un cursor sin elementos
   function _updateContactInfo(aContact) {
     if (!aContact) {
       console.error('Invalid contact');
@@ -183,7 +167,6 @@
         asyncCalls--;
         if (!asyncCalls) {
           if (updateCount) {
-            _updateCacheRevision();
             return;
           }
           // If we didn't update any record that means that the contact
@@ -193,7 +176,6 @@
         }
         return;
       }
-
       var record = cursor.value;
 
       record = _addContactInfoToRecord(record, {
@@ -202,7 +184,6 @@
       });
 
       updateCount++;
-
       cursor.update(record);
       cursor.continue();
     };
@@ -257,9 +238,6 @@
       var cursor = event.target.result;
       if (!cursor || !cursor.value) {
         asyncCalls--;
-        if (!asyncCalls) {
-          _updateCacheRevision();
-        }
         return;
       }
 
@@ -296,124 +274,107 @@
     }, 'readwrite', objectStores);
   }
 
-  function _invalidateContactsCache(aCallback) {
-    _checkCallback(aCallback);
+  function _invalidateContactsCache() {
+    return new Promise(function(resolve, reject) {
+      var objectStores = [_dbCallStore, _dbUrlStore];
+      var asyncCalls = 0;
+      var cursorDone = false;
 
-    var objectStores = [_dbCallStore, _dbUrlStore];
-    var asyncCalls = 0;
-    var cursorDone = false;
+      var _error = null;
 
-    var _error = null;
-
-    function _onupdated() {
-      if (asyncCalls) {
-        return;
-      }
-      aCallback(_error);
-      _updateCacheRevision();
-    }
-
-    function _updateContact(contactInfo, record, objectStore) {
-      // We don't want to queue db transactions that won't update anything.
-      var needsUpdate = false;
-      if (contactInfo) {
-        record = _addContactInfoToRecord(record, contactInfo);
-        needsUpdate = true;
-      } else {
-        if (record.contactId) {
-          needsUpdate = true;
-          delete record.contactId;
+      function _onupdated() {
+        if (asyncCalls) {
+          return;
         }
-        if (record.contactPhoto) {
-          needsUpdate = true;
-          delete record.contactPhoto;
-        }
-        if (record.contactPrimaryInfo) {
-          needsUpdate = true;
-          delete record.contactPrimaryInfo;
-        }
+        (_error ? reject(_error) : resolve());
       }
 
-      if (needsUpdate) {
-        asyncCalls++;
-        _dbHelper.newTxn(function(error, txn, store) {
-          asyncCalls--;
-          if (error) {
-            console.error(error);
-            _error = error;
-            return;
+      function _updateContact(contactInfo, record, objectStore) {
+        // We don't want to queue db transactions that won't update anything.
+        var needsUpdate = false;
+        if (contactInfo) {
+          record = _addContactInfoToRecord(record, contactInfo);
+          needsUpdate = true;
+        } else {
+          if (record.contactId) {
+            needsUpdate = true;
+            delete record.contactId;
           }
+          if (record.contactPhoto) {
+            needsUpdate = true;
+            delete record.contactPhoto;
+          }
+          if (record.contactPrimaryInfo) {
+            needsUpdate = true;
+            delete record.contactPrimaryInfo;
+          }
+        }
 
+        if (needsUpdate) {
           asyncCalls++;
-          var req = store.put(record)
-          req.onsuccess = req.onerror = function() {
+          _dbHelper.newTxn(function(error, txn, store) {
             asyncCalls--;
-            _onupdated();
-          };
-        }, 'readwrite', objectStore);
-      } else {
-        _onupdated();
-      }
-    }
+            if (error) {
+              console.error(error);
+              _error = error;
+              return;
+            }
 
-    function _oncursor(event) {
-      var cursor = event.target.result;
-      if (!cursor) {
-        asyncCalls--;
-        _onupdated();
-        return;
-      }
-
-      var record = cursor.value;
-      asyncCalls++;
-      ContactsHelper.find({ identities: record.identities },
-                          function(contactInfo) {
-        asyncCalls--;
-        _updateContact(contactInfo, record, cursor.source.name);
-      }, function() {
-        asyncCalls--;
-        _updateContact(null, record, cursor.source.name);
-      });
-      cursor.continue();
-    }
-
-    _dbHelper.newTxn(function(error, txn, stores) {
-      if (error) {
-        aCallback(error);
-        return;
+            asyncCalls++;
+            var req = store.put(record)
+            req.onsuccess = req.onerror = function() {
+              asyncCalls--;
+              _onupdated();
+            };
+          }, 'readwrite', objectStore);
+        } else {
+          _onupdated();
+        }
       }
 
-      for (var i = 0, l = stores.length; i < l; i++) {
+      function _oncursor(event) {
+        var cursor = event.target.result;
+        if (!cursor) {
+          asyncCalls--;
+          _onupdated();
+          return;
+        }
+
+        var record = cursor.value;
         asyncCalls++;
-        stores[i].openCursor().onsuccess = _oncursor;
+        ContactsHelper.find({ identities: record.identities },
+                            function(contactInfo) {
+                              asyncCalls--;
+                              _updateContact(contactInfo, record, cursor.source.name);
+                            }, function() {
+                              asyncCalls--;
+                              _updateContact(null, record, cursor.source.name);
+                            });
+        cursor.continue();
       }
 
-      txn.onerror = function(event) {
-        _error = event.target.error.name;
-        _onupdated();
-        console.error(_error);
-      };
-    }, 'readonly', objectStores);
+      _dbHelper.newTxn(function(error, txn, stores) {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        for (var i = 0, l = stores.length; i < l; i++) {
+          asyncCalls++;
+          stores[i].openCursor().onsuccess = _oncursor;
+        }
+
+        txn.onerror = function(event) {
+          _error = event.target.error.name;
+          _onupdated();
+          console.error(_error);
+        };
+      }, 'readonly', objectStores);
+    });
   }
 
   var ActionLogDB = {
-    init: function() {
-      window.addEventListener('oncontactchange', function(event) {
-        var reason = event.detail.reason;
-        var contactId = event.detail.contactId;
-        if (reason == 'remove') {
-          _removeContactInfo(contactId);
-          return;
-        }
-        ContactsHelper.find({
-          contactId: contactId
-        }, function(contactInfo) {
-          _updateContactInfo(contactInfo.contacts[0]);
-        }, function() {
-          _removeContactInfo(contactId);
-        })
-      });
-    },
+
 
     /**
      * getList with Callback manager
@@ -543,9 +504,10 @@
       _dbHelper.deleteRecord(aCallback, _dbUrlStore, aUrls);
     },
 
-    invalidateContactsCache: function(aCallback) {
-      _invalidateContactsCache(aCallback);
-    }
+    invalidateContactsCache: () => _invalidateContactsCache(),
+
+    removeContactInfo: _removeContactInfo,
+    updateContactInfo: _updateContactInfo
 
   };
 

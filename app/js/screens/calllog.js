@@ -5,7 +5,6 @@
   var calllogSectionsContainer, callsTabSelector, roomsTabSelector,
       callsSection, roomsSection, callsSectionEntries, roomsSectionEntries,
       toolbarFooter;
-  var _contactsCache = false;
   var _ready = false;
 
   var _; // l10n get
@@ -549,6 +548,7 @@
   }
 
   function _updateCall(call) {
+console.log('ContactsDB:::::::: ' + JSON.stringify(call));
     if (!call) {
       return;
     }
@@ -666,69 +666,6 @@
   /*****************************
    * Contacts related methods.
    *****************************/
-  function _verifyContactsCache() {
-    return new Promise((resolve, reject) => {
-      // Get the latest contacts cache revision and the actual Contacts API
-      // db revision. If both values differ, we need to update the contact
-      // cache and its revision and directly query the Contacts API to render
-      // the appropriate information while the cache is being rebuilt.
-      window.asyncStorage.getItem('contactsCacheRevision', (cacheRevision) => {
-        var req = navigator.mozContacts.getRevision();
-
-        req.onsuccess = function(event) {
-          var contactsRevision = event.target.result;
-          // We don't need to sync if this is the first time that we use the
-          // action log.
-          if (!cacheRevision || cacheRevision > contactsRevision) {
-            window.asyncStorage.setItem('contactsCacheRevision',
-                                         contactsRevision);
-            reject();
-            return;
-          }
-
-          var cacheIsValid = _contactsCache = (cacheRevision >= contactsRevision);
-          if (cacheIsValid) {
-            reject();
-            return;
-          }
-
-          var pendingCallbacks = 2;
-          function checkInvalidateFinished() {
-            if (!--pendingCallbacks) {
-              _contactsCache = true;
-              resolve();
-            }
-          }
-
-          RoomsDB.invalidateContactsCache(function(error) {
-            if (error) {
-              console.error('Could not invalidate rooms contacts cache ' + error);
-              reject();
-              return;
-            }
-
-            checkInvalidateFinished();
-          });
-
-          ActionLogDB.invalidateContactsCache(function(error) {
-            if (error) {
-              console.error('Could not invalidate contacts cache ' + error);
-              reject();
-              return;
-            }
-
-            checkInvalidateFinished();
-          });
-
-        };
-
-        req.onerror = function(event) {
-          reject();
-        };
-      });
-    });
-  }
-
   function _updateContactInfo(aElement, aContact) {
     // '.primary-info > p' -> Calls in call log | '.primary-info' -> Rooms
     var primaryInfo = aElement.querySelector('.primary-info > p') ||
@@ -929,7 +866,7 @@
       _startTimeUpdates
     ).then(() => {
       // It rejects when the cache is invalid.
-      return _verifyContactsCache();
+      return ContactsDBHelper.verifyContactsCache();
     }).then(() => {
       // Invalid cache then updating items in the call log.
       return Promise.all([
@@ -1068,8 +1005,7 @@
       }
 
       _ = navigator.mozL10n.get;
-      ActionLogDB.init();
-      RoomsDB.init();
+      ContactsDBHelper.init();
 
       callsSection = document.getElementById('calls-section');
       callsSectionEntries = document.getElementById('calls-section-entries');
@@ -1113,30 +1049,6 @@
       // Show the rooms as initial screen
       _changeSection('rooms');
       _renderLogs();
-
-      navigator.mozContacts.oncontactchange = function(event) {
-        window.dispatchEvent(new CustomEvent('oncontactchange', {
-          detail: {
-            reason: event.reason,
-            contactId: event.contactID
-          }
-        }));
-        var reason = event.reason;
-        var contactId = event.contactID;
-        if (reason == 'remove') {
-          _updateListWithContactInfo('remove', contactId);
-          return;
-        }
-
-        ContactsHelper.find({
-          contactId: contactId
-        }, function(contactInfo) {
-          _updateListWithContactInfo(reason, contactInfo.contacts[0]);
-        }, function() {
-          console.error('Could not retrieve contact after getting ' +
-                        'oncontactchange');
-        });
-      };
     },
 
     clean: function() {
@@ -1204,7 +1116,9 @@
 
     showRooms: function() {
       _changeSection('rooms');
-    }
+    },
+	
+    updateListWithContactInfo: _updateListWithContactInfo
   };
 
   exports.CallLog = CallLog;
