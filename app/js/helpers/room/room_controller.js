@@ -22,6 +22,36 @@
     frontCamera: false
   };
 
+  // Connected users connectionId per room
+  var _connectionIds = {};
+
+  function addConnectionId(roomToken, connectionId) {
+    debug && console.log("RoomConnections: Adding " + connectionId +
+                         " to room " + roomToken);
+    if (!_connectionIds[roomToken]) {
+      _connectionIds[roomToken] = [];
+    }
+    var room = _connectionIds[roomToken];
+    if (room.indexOf(connectionId) < 0) {
+      room.push(connectionId);
+    }
+  }
+
+  function updateConnectionIds(roomToken, connectionIds) {
+    debug && console.log("RoomConnections: Updating " + roomToken +
+                         " with connections: " + connectionIds);
+    _connectionIds[roomToken] = connectionIds;
+  }
+
+  function checkConnectionId(roomToken, connectionId) {
+    debug && console.log("RoomConnections: Checking " + connectionId +
+                         " in room " + roomToken);
+    if (_connectionIds[roomToken]) {
+      return _connectionIds[roomToken].indexOf(connectionId) >= 0;
+    }
+    return false;
+  }
+
   function showError(errorMessage) {
     errorMessage = errorMessage || 'genericServerError';
     Loader.getErrorScreen().then(ErrorScreen => {
@@ -163,6 +193,7 @@
   }
 
   var RoomController = {
+    connectionIds: {},
     join: function(params) {
       debug && console.log('Join room with params: ' + JSON.stringify(params));
 
@@ -359,10 +390,17 @@
         });
       });
     },
-    addParticipant: function(token, name, account) {
+    addParticipant: function(token, name, account, connectionId) {
       if (isConnected && currentToken && (currentToken === token)) {
         RoomUI.updateParticipant(name, account);
       }
+      addConnectionId(token, connectionId);
+    },
+    updateParticipants: function(token, connectionIds) {
+      updateConnectionIds(token, connectionIds);
+    },
+    isParticipant: function(token, connectionId) {
+      return checkConnectionId(token, connectionId);
     }
   };
 
