@@ -248,101 +248,64 @@
         debug && console.log('[onRoomsEvent] Rooms changed ' + JSON.stringify(rooms));
         Utils.getAppInfo().then(appInfo => {
           rooms.forEach(function(room) {
-            // Avoid auto-push effect. If the room is full there is no
-            // notification (due we are connected and waiting the other
-            // peer)
             if (!room.participants || room.participants.length === 0) {
               return;
             }
 
             var lastStateRoom = _getLastStateRoom(room);
-            if (room.participants.length === MAX_PARTICIPANTS) {
-              room.participants.forEach((participant) => {
-                if (participant.account !== Controller.identity &&
-                    !RoomController.isParticipant(room.roomToken,
-                                                  participant.roomConnectionId)) {
-
-                  document.hidden && Loader.getNotificationHelper().then(
-                    function(NotificationHelper) {
-                      NotificationHelper.send({
-                        raw: room.roomName
-                      }, {
-                        body: _('hasJoined', {
-                          name: participant.displayName
-                        }),
-                        icon: appInfo.icon,
-                        tag: room.roomUrl
-                      }).then((notification) => {
-                        var onVisibilityChange = function() {
-                          if (!document.hidden) {
-                            notification.close();
-                          }
-                        };
-                        document.addEventListener('visibilitychange',
-                                                  onVisibilityChange);
-                        notification.onclose = function() {
-                          document.removeEventListener('visibilitychange',
-                                                       onVisibilityChange);
-                          notification.onclose = notification.onclick = null;
-                        };
-                        notification.onclick = function() {
-                          debug && console.log(
-                            'Notification clicked for room: ' + room.roomUrl
-                          );
-                          appInfo.app.launch();
-                          notification.close();
-                        };
-                      });
-                    });
-                  RoomController.addParticipant(
-                    room.roomToken,
-                    participant.displayName,
-                    participant.account,
-                    participant.roomConnectionId
-                  );
-                  _registerOtherJoinEvt(room.roomToken,
-                                        participant,
-                                        lastStateRoom);
-                }
-              });
-
-
-              // Clean disconnected users
-              RoomController.updateParticipants(room.roomToken,
-                                                room.participants.map(
-                                                  p => p.roomConnectionId));
-              return;
-            }
-
             room.participants.forEach((participant) => {
               if (participant.account !== Controller.identity &&
                   !RoomController.isParticipant(room.roomToken,
                                                 participant.roomConnectionId)) {
 
+                document.hidden && Loader.getNotificationHelper().then(
+                  function(NotificationHelper) {
+
+                    if (room.roomOwner === Controller.identity) {
+                      TonePlayerHelper.init('publicnotification');
+                      TonePlayerHelper.playSomeoneJoinedARoomYouOwn();
+                    }
+
+
+                    NotificationHelper.send({
+                      raw: room.roomName
+                    }, {
+                      body: _('hasJoined', {
+                        name: participant.displayName
+                      }),
+                      icon: appInfo.icon,
+                      tag: room.roomUrl
+                    }).then((notification) => {
+                      var onVisibilityChange = function() {
+                        if (!document.hidden) {
+                          notification.close();
+                        }
+                      };
+                      document.addEventListener('visibilitychange',
+                                                onVisibilityChange);
+                      notification.onclose = function() {
+                        document.removeEventListener('visibilitychange',
+                                                     onVisibilityChange);
+                        notification.onclose = notification.onclick = null;
+                      };
+                      notification.onclick = function() {
+                        debug && console.log(
+                          'Notification clicked for room: ' + room.roomUrl
+                        );
+                        appInfo.app.launch();
+                        notification.close();
+                      };
+                    });
+                  });
+                RoomController.addParticipant(
+                  room.roomToken,
+                  participant.displayName,
+                  participant.account,
+                  participant.roomConnectionId
+                );
                 _registerOtherJoinEvt(room.roomToken,
                                       participant,
                                       lastStateRoom);
-                Loader.getNotificationHelper().then(function(NotificationHelper) {
-                  if (room.roomOwner === Controller.identity) {
-                    TonePlayerHelper.init('publicnotification');
-                    TonePlayerHelper.playSomeoneJoinedARoomYouOwn();
-                  }
-                  NotificationHelper.send({
-                    raw: room.roomName
-                  }, {
-                    body: _('hasJoined', {
-                      name: participant.displayName
-                    }),
-                    icon: appInfo.icon,
-                    tag: room.roomUrl
-                  }).then((notification) => {
-                    notification.onclick = function() {
-                      debug && console.log('Notification clicked for room: ' + room.roomUrl);
-                      appInfo.app.launch();
-                      notification.close();
-                    };
-                  });
-                });
               }
             });
 
