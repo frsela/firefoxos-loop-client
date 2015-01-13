@@ -259,45 +259,46 @@
                   !RoomController.isParticipant(room.roomToken,
                                                 participant.roomConnectionId)) {
 
-                Loader.getNotificationHelper().then(
-                  function(NotificationHelper) {
+                (room.participants.length !== MAX_PARTICIPANTS) &&
+                  Loader.getNotificationHelper().then(
+                    function(NotificationHelper) {
 
-                    if (room.roomOwner === Controller.identity) {
-                      TonePlayerHelper.init('publicnotification');
-                      TonePlayerHelper.playSomeoneJoinedARoomYouOwn();
-                    }
+                      if (room.roomOwner === Controller.identity) {
+                        TonePlayerHelper.init('publicnotification');
+                        TonePlayerHelper.playSomeoneJoinedARoomYouOwn();
+                      }
 
 
-                    NotificationHelper.send({
-                      raw: room.roomName
-                    }, {
-                      body: _('hasJoined', {
-                        name: participant.displayName
-                      }),
-                      icon: appInfo.icon,
-                      tag: room.roomUrl
-                    }).then((notification) => {
-                      var onVisibilityChange = function() {
-                        if (!document.hidden) {
+                      NotificationHelper.send({
+                        raw: room.roomName
+                      }, {
+                        body: _('hasJoined', {
+                          name: participant.displayName
+                        }),
+                        icon: appInfo.icon,
+                        tag: room.roomUrl
+                      }).then((notification) => {
+                        var onVisibilityChange = function() {
+                          if (!document.hidden) {
+                            notification.close();
+                          }
+                        };
+                        document.addEventListener('visibilitychange',
+                                                  onVisibilityChange);
+                        notification.onclose = function() {
+                          document.removeEventListener('visibilitychange',
+                                                       onVisibilityChange);
+                          notification.onclose = notification.onclick = null;
+                        };
+                        notification.onclick = function() {
+                          debug && console.log(
+                            'Notification clicked for room: ' + room.roomUrl
+                          );
+                          appInfo.app.launch();
                           notification.close();
-                        }
-                      };
-                      document.addEventListener('visibilitychange',
-                                                onVisibilityChange);
-                      notification.onclose = function() {
-                        document.removeEventListener('visibilitychange',
-                                                     onVisibilityChange);
-                        notification.onclose = notification.onclick = null;
-                      };
-                      notification.onclick = function() {
-                        debug && console.log(
-                          'Notification clicked for room: ' + room.roomUrl
-                        );
-                        appInfo.app.launch();
-                        notification.close();
-                      };
+                        };
+                      });
                     });
-                  });
                 RoomController.addParticipant(
                   room.roomToken,
                   participant.displayName,
