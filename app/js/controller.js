@@ -243,8 +243,8 @@
       _synchronizeRooms();
       // Launch notifications if anyone joined
       Promise.all([Loader.getRoomController(),
-                   Rooms.getChanges(version)]).then(function(values) {
-        var rooms = values[1];
+                   Rooms.getChanges(version)]).then(function(args) {
+        var rooms = args[1];
         debug && console.log('[onRoomsEvent] Rooms changed ' + JSON.stringify(rooms));
         Utils.getAppInfo().then(appInfo => {
           rooms.forEach(function(room) {
