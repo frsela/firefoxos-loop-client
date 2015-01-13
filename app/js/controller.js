@@ -249,6 +249,7 @@
         Utils.getAppInfo().then(appInfo => {
           rooms.forEach(function(room) {
             if (!room.participants || room.participants.length === 0) {
+              RoomController.updateParticipants(room.roomToken, []);
               return;
             }
 
@@ -258,7 +259,7 @@
                   !RoomController.isParticipant(room.roomToken,
                                                 participant.roomConnectionId)) {
 
-                document.hidden && Loader.getNotificationHelper().then(
+                Loader.getNotificationHelper().then(
                   function(NotificationHelper) {
 
                     if (room.roomOwner === Controller.identity) {

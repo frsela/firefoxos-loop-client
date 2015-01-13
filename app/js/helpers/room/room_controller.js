@@ -26,6 +26,7 @@
   var _connectionIds = {};
 
   function addConnectionId(roomToken, connectionId) {
+console.log("RoomConnections: "+JSON.stringify(_connectionIds));
     debug && console.log("RoomConnections: Adding " + connectionId +
                          " to room " + roomToken);
     if (!_connectionIds[roomToken]) {
@@ -38,12 +39,14 @@
   }
 
   function updateConnectionIds(roomToken, connectionIds) {
+console.log("RoomConnections: "+JSON.stringify(_connectionIds));
     debug && console.log("RoomConnections: Updating " + roomToken +
                          " with connections: " + connectionIds);
     _connectionIds[roomToken] = connectionIds;
   }
 
   function checkConnectionId(roomToken, connectionId) {
+console.log("RoomConnections: "+JSON.stringify(_connectionIds));
     debug && console.log("RoomConnections: Checking " + connectionId +
                          " in room " + roomToken);
     if (_connectionIds[roomToken]) {
