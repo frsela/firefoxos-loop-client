@@ -23,36 +23,31 @@
   };
 
   // Connected users connectionId per room
-  var _connectionIds = {};
+  var connectionIds = {};
 
   function addConnectionId(roomToken, connectionId) {
-console.log("RoomConnections: "+JSON.stringify(_connectionIds));
     debug && console.log("RoomConnections: Adding " + connectionId +
                          " to room " + roomToken);
-    if (!_connectionIds[roomToken]) {
-      _connectionIds[roomToken] = [];
+    if (!connectionIds[roomToken]) {
+      connectionIds[roomToken] = [];
     }
-    var room = _connectionIds[roomToken];
+    var room = connectionIds[roomToken];
     if (room.indexOf(connectionId) < 0) {
       room.push(connectionId);
     }
   }
 
   function updateConnectionIds(roomToken, connectionIds) {
-console.log("RoomConnections: "+JSON.stringify(_connectionIds));
     debug && console.log("RoomConnections: Updating " + roomToken +
                          " with connections: " + connectionIds);
-    _connectionIds[roomToken] = connectionIds;
+    connectionIds[roomToken] = connectionIds;
   }
 
   function checkConnectionId(roomToken, connectionId) {
-console.log("RoomConnections: "+JSON.stringify(_connectionIds));
     debug && console.log("RoomConnections: Checking " + connectionId +
                          " in room " + roomToken);
-    if (_connectionIds[roomToken]) {
-      return _connectionIds[roomToken].indexOf(connectionId) >= 0;
-    }
-    return false;
+    return connectionIds[roomToken] &&
+           (connectionIds[roomToken].indexOf(connectionId) >= 0);
   }
 
   function showError(errorMessage) {
@@ -196,7 +191,6 @@ console.log("RoomConnections: "+JSON.stringify(_connectionIds));
   }
 
   var RoomController = {
-    connectionIds: {},
     join: function(params) {
       debug && console.log('Join room with params: ' + JSON.stringify(params));
 

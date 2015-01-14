@@ -245,17 +245,18 @@
       Promise.all([Loader.getRoomController(),
                    Rooms.getChanges(version)]).then(function(args) {
         var rooms = args[1];
-        debug && console.log('[onRoomsEvent] Rooms changed ' + JSON.stringify(rooms));
+        debug && console.log('[onRoomsEvent] Rooms changed ' +
+                             JSON.stringify(rooms));
         Utils.getAppInfo().then(appInfo => {
           rooms.forEach(function(room) {
-            if (!room.participants || room.participants.length === 0) {
+            if (!room.participants || (room.participants.length === 0)) {
               RoomController.updateParticipants(room.roomToken, []);
               return;
             }
 
             var lastStateRoom = _getLastStateRoom(room);
             room.participants.forEach((participant) => {
-              if (participant.account !== Controller.identity &&
+              if ((participant.account !== Controller.identity) &&
                   !RoomController.isParticipant(room.roomToken,
                                                 participant.roomConnectionId)) {
 
@@ -264,16 +265,15 @@
                 // NOTE: Now, we check owner is connected looking to
                 // MAX_PARTICIPANTS, but this will not be valid in more than 2
                 // participants rooms.
-                if (room.participants.length !== MAX_PARTICIPANTS ||
+                if ((room.participants.length !== MAX_PARTICIPANTS) ||
                     document.hidden) {
+
                   Loader.getNotificationHelper().then(
                     function(NotificationHelper) {
-
                       if (room.roomOwner === Controller.identity) {
                         TonePlayerHelper.init('publicnotification');
                         TonePlayerHelper.playSomeoneJoinedARoomYouOwn();
                       }
-
 
                       NotificationHelper.send({
                         raw: room.roomName
@@ -576,7 +576,8 @@
         onsuccess = function() {};
       }
 
-      debug && console.log('Loop web URL for SMS ' + params.url + ' to ' + params.phonenumber);
+      debug && console.log('Loop web URL for SMS ' + params.url + ' to ' +
+                           params.phonenumber);
       Loader.getShare().then((Share) => {
         Share.useSMS(
           params,
