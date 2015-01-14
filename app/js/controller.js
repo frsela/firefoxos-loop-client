@@ -259,7 +259,13 @@
                   !RoomController.isParticipant(room.roomToken,
                                                 participant.roomConnectionId)) {
 
-                (room.participants.length !== MAX_PARTICIPANTS) &&
+                // If the owner is connected (plenty room) and the app is in
+                // foreground, no notification should be fired.
+                // NOTE: Now, we check owner is connected looking to
+                // MAX_PARTICIPANTS, but this will not be valid in more than 2
+                // participants rooms.
+                if (room.participants.length !== MAX_PARTICIPANTS ||
+                    document.hidden) {
                   Loader.getNotificationHelper().then(
                     function(NotificationHelper) {
 
@@ -299,6 +305,7 @@
                         };
                       });
                     });
+                }
                 RoomController.addParticipant(
                   room.roomToken,
                   participant.displayName,
