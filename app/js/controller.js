@@ -254,7 +254,6 @@
               return;
             }
 
-            var lastStateRoom = _getLastStateRoom(room);
             room.participants.forEach((participant) => {
               if ((participant.account !== Controller.identity) &&
                   !RoomController.isParticipant(room.roomToken,
@@ -270,10 +269,8 @@
 
                   Loader.getNotificationHelper().then(
                     function(NotificationHelper) {
-                      if (room.roomOwner === Controller.identity) {
-                        TonePlayerHelper.init('publicnotification');
-                        TonePlayerHelper.playSomeoneJoinedARoomYouOwn();
-                      }
+                      TonePlayerHelper.init('publicnotification');
+                      TonePlayerHelper.playSomeoneJoinedARoomYouOwn();
 
                       NotificationHelper.send({
                         raw: room.roomName
@@ -314,7 +311,7 @@
                 );
                 _registerOtherJoinEvt(room.roomToken,
                                       participant,
-                                      lastStateRoom);
+                                      _getLastStateRoom(room));
               }
             });
 
