@@ -1,9 +1,11 @@
 (function(exports) {
   'use strict';
 
-  var _countdownElements;
   var _counter = 0;
+  var _countdownElements;
   var _counterTimer = null;
+  var _counterStart = 0;
+  var _counterGap = 0;
 
   var debug = Config.debug;
 
@@ -16,7 +18,8 @@
   }
 
   function _reset() {
-    _counter = 0;
+    _counterStart = performance.now();
+    _counterGap = 0;
   }
 
   function _paint(minutes, seconds) {
@@ -39,8 +42,9 @@
         debug && console.log('Warning, a countdown timer is running!');
         return;
       }
+      _counterStart = performance.now();
       _counterTimer = setInterval(function() {
-        ++_counter;
+        _counter = (_counterGap + (performance.now() - _counterStart)) / 1000;
         var minutes = Math.floor(_counter/60);
         var seconds = Math.floor(_counter%60);
         _paint(minutes, seconds);
@@ -49,10 +53,12 @@
     stop: function() {
       clearInterval(_counterTimer);
       _counterTimer = null;
+      _counterGap = _counter;
       return _counter;
     },
     reset: function() {
       _reset();
+      _paint(0, 0);
     }
   };
 
